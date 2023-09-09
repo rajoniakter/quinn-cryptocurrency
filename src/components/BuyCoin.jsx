@@ -6,13 +6,6 @@ import FooterNotice from './FooterNotice'
 const BuyCoin = ({isNotSmallerScreen,userAccountTokenBalance,buyNumber,saleContractBalance,handleBuyNumberChanged,buyTokens,tokenPrice,tokenContractAddress,tokenSaleContractAddress,userAccount,coinAvailable,coinsSold} ) => {
 
 
-  const checkButtonAction = (buyNumber) =>{
-
-    if(buyNumber > coinAvailable && buyNumber < 1){
-      return false
-    }else return true
-  }
-
   return (
     <>
       <Center>
