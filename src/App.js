@@ -45,44 +45,39 @@ function App() {
   const [coinsSold, setCoinsSold] = useState(0);
   const [coinAvailable, setCoinAvailable] = useState(0);
   const [tokenContractAddress, setTokenContractAddress] = useState(null);
+  const [saleContractBalance,setSaleContractBalance] = useState(null)
 
   
   
   // functions
-  const handleBuyNumberChanged = async (value: string) => {
+  const handleBuyNumberChanged = async (value) => {
     setBuyNumber(parseInt(value));
     console.log(value);
   };
 
   const buyTokens = async () => {
-    console.log(tokenPrice, buyNumber);
-
-    let priceInWei = web3.utils.toWei("0.001", "ether").toString();
-
-    let totalPrice = buyNumber * priceInWei;
-
-    console.log( totalPrice, 'total price');
-
     console.log(quinnSaleContract, 'quinn sale contract');
-
-    // let result = await quinnSaleContract.methods.buyTokens(buyNumber, {
-    //   from: userAccount,
-    //   value: totalPrice,
-    //   gas:500000
-    // }).call()
-
-
-    // console.log(result, 'buy result');
-
-    let buyer = userAccount.toString()
+            
     try {
+      console.log(tokenPrice, buyNumber);
+      console.log(saleContractBalance, "saleContractBalance");
+      
+      let priceInWei = web3.utils.toWei("0.001", "ether").toString();
+      console.log(priceInWei, "price in wei")
+
+      let totalPrice = buyNumber * priceInWei;
+      console.log(totalPrice, "value in try block");
+
+      let totalPriceString = totalPrice.toString();
+
+      let buyer = userAccount.toString()
 
       console.log(buyer, 'buyer');
       // Call the buyTokens function
       let result = await quinnSaleContract.methods.buyTokens(buyNumber).send({
         from: buyer,
-        value: totalPrice,
-        gas:500000
+        value: totalPriceString,
+        gas:200000,
       })
     
       // Handle the result if the transaction succeeds
@@ -91,9 +86,6 @@ function App() {
       // Handle the error if the transaction reverts
       console.error("Error buying tokens:", error);
     }
-
-
-
   }
 
   
@@ -187,13 +179,13 @@ useEffect(() => {
         console.log(web3, 'web3');
 
         // connecting to smart contract
-        const quinnContractAddress = "0x933Cf45BE8Fba8dAf7570CF74E869fb265Dc26a1";
+        const quinnContractAddress = "0xAe5904a44f05976D747acf728Ad4ae0A6b9Ef6E5";
         const quinnContract = new web3.eth.Contract(QuinnAbi.abi, quinnContractAddress)
         setQuinnContract(quinnContract)
         setTokenContractAddress(quinnContractAddress)  
 
 
-        const quinnSaleContractAddress = "0x539BF70AbF399fd3dFc45bf9AB0378A77FF9a10d";
+        const quinnSaleContractAddress = "0x20EDc4f7F89f7C3DaA31822307d0FA0a3d2A2caC";
         const quinnSaleContract = new web3.eth.Contract(QuinnSaleAbi.abi, quinnSaleContractAddress)
         setQuinnSaleContract(quinnSaleContract);
         
@@ -233,12 +225,11 @@ useEffect(() => {
           console.log(coinAvailable, 'coin availability');
         
 
-        // let saleContractBalance = await quinnContract.methods.balanceOf(quinnSaleContract._address).call()
-        // setSaleContractBalance(Number(saleContractBalance.toString()));
-        // console.log(Number(saleContractBalance.toString()), 'coin sale balance');
+        let saleContractBalance = await quinnContract.methods.balanceOf(quinnSaleContractAddress).call()
+        setSaleContractBalance(Number(saleContractBalance.toString()));
+        console.log(Number(saleContractBalance.toString()), 'coin sale balance');
 
-        // console.log(quinnSaleContract._address, 'sale contract address');
-
+      
       
         //user information 
         const accounts = await web3.eth.getAccounts();
