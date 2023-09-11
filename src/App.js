@@ -9,10 +9,10 @@ import { ThirdwebProvider, coinbaseWallet, metamaskWallet, rainbowWallet, trustW
 
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import Web3 from 'web3';
 import QuinnAbi from './ABIs/Quinn.json';
 import QuinnSaleAbi from './ABIs/QuinnSale.json';
 
+import { ethers, utils } from "ethers";
 import AboutUs from './components/AboutUs';
 import BuyCoin from './components/BuyCoin';
 import ConnectWalletPage from './components/ConnectWalletPage';
@@ -31,10 +31,8 @@ function App() {
   const isDark = colorMode === "dark";
 
   // states
-  const [web3, setWeb3] = useState(null);
   const [userAccountTokenBalance, setUserAccountTokenBalance] = useState(0);
   const [buyNumber, setBuyNumber] = useState(1);
-  //const [saleContractBalance, setSaleContractBalance] = useState(0);
   const [tokenPrice, setTokenPrice] = useState(0);
   const [userAccount, setUserAccount] = useState(null);
   const [QuinnContract, setQuinnContract] = useState(null);
@@ -62,7 +60,7 @@ function App() {
       console.log(tokenPrice, buyNumber);
       console.log(saleContractBalance, "saleContractBalance");
       
-      let priceInWei = web3.utils.toWei("0.001", "ether").toString();
+      let priceInWei =  utils.parseEther(tokenPrice.toString());
       console.log(priceInWei, "price in wei")
 
       let totalPrice = buyNumber * priceInWei;
@@ -73,15 +71,17 @@ function App() {
       let buyer = userAccount.toString()
 
       console.log(buyer, 'buyer');
+      console.log(totalPriceString, 'value in string');
       // Call the buyTokens function
-      let result = await quinnSaleContract.methods.buyTokens(buyNumber).send({
-        from: buyer,
+
+      const tx = await quinnSaleContract.buyTokens(buyNumber, {
         value: totalPriceString,
-        gas:200000,
-      })
-    
-      // Handle the result if the transaction succeeds
-      console.log(result, 'buy result');
+        gasLimit: 500000,
+      });
+
+      await tx.wait();
+      console.log('Transaction confirmed:', tx.hash);
+     
     } catch (error) {
       // Handle the error if the transaction reverts
       console.error("Error buying tokens:", error);
@@ -122,142 +122,79 @@ useEffect(() => {
   }
 }, []);
 
-
-// const [isWalletConnected, setIsWalletConnected] = useState(null);
-
-// useEffect(() => {
-//   console.log('use effect triggered');
-//   // Listen for changes in the specific localStorage key
-//   const handleLocalStorageChange = (e) => {
-//     console.log('handleLocalStorageChange triggered');
-
-//     console.log(e.key,'key value' , e.value);
-//     if (e.key === '__TW__/coordinatorStorage/lastConnectedWallet') {
-//       // Check if the value matches the connected wallet
-//       const walletData = JSON.parse(e.newValue);
-//       console.log(walletData?.walletId, 'conditional');
-//       if (walletData?.walletId) {
-//         setIsWalletConnected(true);
-//         console.log(isWalletConnected, 'cechk');
-//       } else {
-//         setIsWalletConnected(false);
-//       }
-//     }
-//   };
-
-//   // Add the event listener
-//   window.addEventListener('storage', handleLocalStorageChange);
-
-//   // Check the initial localStorage value
-//   const initialWalletData = JSON.parse(
-//     localStorage.getItem('__TW__/coordinatorStorage/lastConnectedWallet')
-//   );
-
-//   console.log(initialWalletData, 'initial wallet data');
-
-//   if (initialWalletData?.walletId) {
-//     setIsWalletConnected(true);
-//   } else {
-//     setIsWalletConnected(false);
-//   }
-
-
-// }, []);
-
-
-// getting contract data
 useEffect(() => {
   const initContractData = async () => {
     if(isWalletConnected){
-      let web3 = new Web3(window.ethereum)
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+
+      console.log(signer, 'signing contract');
 
       
       try {
-        await window.ethereum.enable();
-        setWeb3(web3)
-
-        console.log(web3, 'web3');
-
         // connecting to smart contract
         const quinnContractAddress = "0xAe5904a44f05976D747acf728Ad4ae0A6b9Ef6E5";
-        const quinnContract = new web3.eth.Contract(QuinnAbi.abi, quinnContractAddress)
+        const quinnContract = new ethers.Contract(quinnContractAddress, QuinnAbi.abi, signer)
         setQuinnContract(quinnContract)
         setTokenContractAddress(quinnContractAddress)  
 
 
         const quinnSaleContractAddress = "0x20EDc4f7F89f7C3DaA31822307d0FA0a3d2A2caC";
-        const quinnSaleContract = new web3.eth.Contract(QuinnSaleAbi.abi, quinnSaleContractAddress)
+        const quinnSaleContract = new ethers.Contract(quinnSaleContractAddress, QuinnSaleAbi.abi, signer)
         setQuinnSaleContract(quinnSaleContract);
         
         console.log(quinnContract, 'quin contract')
         console.log(quinnSaleContract, 'quin sale contract')
-
-        console.log(quinnContract._address, 'quinn contract address');
+       
 
         // fetching initial value
 
         // fetching quinn information        
-        let coinName = await quinnContract.methods.name().call()
+        let coinName = await quinnContract.name();
         setCoinName(coinName);
         console.log(coinName, 'coin name');
 
-        let coinSymbol = await quinnContract.methods.symbol().call()
+        let coinSymbol = await quinnContract.symbol();
         setCoinSymbol(coinSymbol);
         console.log(coinSymbol, 'coin symbol');
 
-        let totalSupply = await quinnContract.methods.totalSupply().call();
+        let totalSupply = await quinnContract.totalSupply();
         setCoinTotalSupply(Number(totalSupply.toString()));
         console.log(Number(totalSupply.toString()), 'coin total supply');
 
-        let price = await quinnSaleContract.methods.tokenPrice().call();
-        let priceInFloat = parseFloat(Web3.utils.fromWei(price, 'ether'))
-        setTokenPrice(priceInFloat);        
-        console.log(priceInFloat, 'coin token price in ether');
+        let price = await quinnSaleContract.tokenPrice();
+        let priceInEth = ethers.utils.formatEther(price)
+        setTokenPrice(priceInEth);        
+        console.log(priceInEth, 'coin token price in ether');
 
-        let coinsSold = await quinnSaleContract.methods.tokensSold().call();
+        let coinsSold = await quinnSaleContract.tokensSold();
         setCoinsSold(Number(coinsSold.toString()))
-        console.log(Number(coinsSold.toString()), 'coin token sold');
+        console.log(Number(coinsSold.toString()), 'coin token sold');   
 
-        
 
-          let availableQuinn = totalSupply - coinsSold;
-          setCoinAvailable(Number(availableQuinn.toString()));
-          console.log(coinAvailable, 'coin availability');
-        
+        let availableQuinn = totalSupply - coinsSold;
+        setCoinAvailable(Number(availableQuinn.toString()));
+        console.log(coinAvailable, 'coin availability');
 
-        let saleContractBalance = await quinnContract.methods.balanceOf(quinnSaleContractAddress).call()
+
+        let saleContractBalance = await quinnContract.balanceOf(quinnSaleContractAddress);
         setSaleContractBalance(Number(saleContractBalance.toString()));
         console.log(Number(saleContractBalance.toString()), 'coin sale balance');
-
-      
       
         //user information 
-        const accounts = await web3.eth.getAccounts();
-        const newAccount = accounts[0];
-        setUserAccount(newAccount);
-        console.log(newAccount, 'account');
-  
-       
-        // const balance = await quinnContract.methods.balanceOf( userAccount).call({from:userAccount})
-        // setUserAccountTokenBalance(Number(balance.toString()))  
-        // console.log('user acc balance',Number(balance.toString()));
-        
-        
-          // setTimeout(async () => {
-          //   const balance = await quinnContract.methods.balanceOf(userAccount).call();
-          //   setUserAccountTokenBalance(Number(balance.toString()));
-          //   console.log('User account balance:', Number(balance.toString()));
-          // }, 15000); // Adjust the delay as needed
-
-        if (newAccount && /^0x[a-fA-F0-9]{40}$/.test(newAccount)) {
-          const balance = await quinnContract.methods.balanceOf(newAccount).call();
-          setUserAccountTokenBalance(Number(balance.toString()));
-          console.log('User account balance:', Number(balance.toString()));
+        if(window.ethereum.selectedAddress){
+          const accounts = await window.ethereum.selectedAddress;
+          
+          setUserAccount(accounts);
+          console.log(accounts, 'account');
         }
 
-      
-       
-        
+        if (userAccount && /^0x[a-fA-F0-9]{40}$/.test(userAccount)) {
+          const balance = await quinnContract.balanceOf(userAccount);
+          setUserAccountTokenBalance(Number(balance.toString()));
+          console.log('User account balance:', Number(balance.toString()));
+        }    
+
       } catch (error) {
         console.log(error)
       }
