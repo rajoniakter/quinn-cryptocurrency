@@ -7,12 +7,14 @@ import {
 } from '@chakra-ui/react';
 import { ThirdwebProvider, coinbaseWallet, metamaskWallet, rainbowWallet, trustWallet, walletConnect } from '@thirdweb-dev/react';
 
-import React, { useEffect, useState } from 'react';
+import { ethers, utils } from "ethers";
+import React, { CSSProperties, useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { ClimbingBoxLoader } from 'react-spinners';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import QuinnAbi from './ABIs/Quinn.json';
 import QuinnSaleAbi from './ABIs/QuinnSale.json';
-
-import { ethers, utils } from "ethers";
 import AboutUs from './components/AboutUs';
 import BuyCoin from './components/BuyCoin';
 import ConnectWalletPage from './components/ConnectWalletPage';
@@ -22,6 +24,7 @@ import Nav from './components/Nav';
 import PriceTicker from './components/PriceTicker';
 import PrivateRoute from './components/PrivateRoute';
 
+
 function App() {
 
   // variables
@@ -29,6 +32,18 @@ function App() {
 
   const {colorMode} = useColorMode()
   const isDark = colorMode === "dark";
+
+  const override: CSSProperties = {
+    position:"absolute",
+    margin: "-50px ",
+    borderColor: "red",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "1050px",
+    width: "1980px",
+    backgroundColor: "#1A202C",
+    zIndex:1111
+  };
 
   // states
   const [userAccountTokenBalance, setUserAccountTokenBalance] = useState(0);
@@ -43,7 +58,10 @@ function App() {
   const [coinsSold, setCoinsSold] = useState(0);
   const [coinAvailable, setCoinAvailable] = useState(0);
   const [tokenContractAddress, setTokenContractAddress] = useState(null);
-  const [saleContractBalance,setSaleContractBalance] = useState(null)
+  const [saleContractBalance,setSaleContractBalance] = useState(null);
+  const [transactionData, setTransactionData] = useState(null);
+  const [ethPriceUsd, setEthPriceUsd] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   
   
@@ -57,6 +75,7 @@ function App() {
     console.log(quinnSaleContract, 'quinn sale contract');
             
     try {
+      setLoading(true)
       console.log(tokenPrice, buyNumber);
       console.log(saleContractBalance, "saleContractBalance");
       
@@ -81,10 +100,38 @@ function App() {
 
       await tx.wait();
       console.log('Transaction confirmed:', tx.hash);
+      toast.success('🦄 Congratulations! You have successfully purchased QUINN!', {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+        });
+
+        setTimeout(() => {
+          setLoading(false);
+          
+          window.location.reload()
+        }, 2000);
+       
      
     } catch (error) {
       // Handle the error if the transaction reverts
       console.error("Error buying tokens:", error);
+      toast.error('Something went wrong, Rejected!', {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "dark",
+        });
+        setLoading(false)
     }
   }
 
@@ -109,9 +156,29 @@ useEffect(() => {
       if (accounts.length === 0) {
         setIsWalletConnected(false);
         localStorage.setItem('isWalletConnected', JSON.stringify(false));
+        toast.error('Wallet Disconnected!', {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          });
       } else {
         setIsWalletConnected(true);
         localStorage.setItem('isWalletConnected', JSON.stringify(true));
+        toast.success('Wallet Connected!', {
+          position: "top-center",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "dark",
+          });
       }
     }
     catch(error){
@@ -193,7 +260,25 @@ useEffect(() => {
           const balance = await quinnContract.balanceOf(userAccount);
           setUserAccountTokenBalance(Number(balance.toString()));
           console.log('User account balance:', Number(balance.toString()));
-        }    
+
+         //fetching the transaction history
+          const historyApi =  `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${userAccount}&startblock=0&endblock=99999999&page=1&offset=100&sort=asc&apikey=PRAIR8HT29XAKC6P7D13KE5HAGQGHQE7XT`;
+
+          const response = await fetch(historyApi);
+          const data = await response.json();
+          setTransactionData(data.result);
+          console.log(data.result, 'transaction data');
+         
+        } 
+
+        const ethPrice = 'https://api.etherscan.io/api?module=stats&action=ethprice&apikey=PRAIR8HT29XAKC6P7D13KE5HAGQGHQE7XT';
+
+        const response = await fetch(ethPrice);
+        const data = await response.json();
+        setEthPriceUsd(data.result.ethusd);
+        console.log(data.result.ethusd, 'eth price usd');
+        
+
 
       } catch (error) {
         console.log(error)
@@ -203,7 +288,7 @@ useEffect(() => {
 
   initContractData()
 
-}, [isWalletConnected,userAccount,coinTotalSupply,coinsSold,coinAvailable]);
+}, [isWalletConnected,userAccount,coinsSold,coinAvailable]);
 
 
   return (
@@ -216,6 +301,26 @@ useEffect(() => {
       <BrowserRouter>
         <ChakraProvider theme={theme}>
           <VStack p={5}>
+          <ToastContainer
+            position="top-center"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="dark"
+          />
+          <ClimbingBoxLoader 
+            color="#36d7b7"   
+            loading={loading}
+            cssOverride={override}
+            size={50}
+            aria-label="Loading Spinner"
+            data-testid="loader"
+          />
 
             <PriceTicker/>
 
@@ -252,6 +357,9 @@ useEffect(() => {
                   setIsWalletConnected={setIsWalletConnected} 
                   setUserAccount={setUserAccount}
                   coinAvailable={coinAvailable}
+                  tokenContractAddress={tokenContractAddress}
+                  transactionData={transactionData}
+                  ethPriceUsd={ethPriceUsd}
                   />}
                 />
               </Route>
