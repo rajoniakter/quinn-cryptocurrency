@@ -10,7 +10,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 
-const QuinnOverview = ({coinName,coinSymbol,coinTotalSupply,coinsSold,tokenPrice,coinAvailable}) => {
+const QuinnOverview = ({coinName,coinSymbol,coinTotalSupply,coinsSold,tokenPrice,coinAvailable,tokenContractAddress,ethPriceUsd}) => {
   return (
     <Container width={'full'}>
       
@@ -21,12 +21,12 @@ const QuinnOverview = ({coinName,coinSymbol,coinTotalSupply,coinsSold,tokenPrice
           <Text mt={4} >Coin Name: {coinName}</Text>
           <Text mt={4} >Coin Symbol: {coinSymbol}</Text>
           <Text mt={4} >Coin Current Price: {tokenPrice} ETH</Text>
-          <Text mt={4} >Per Quinn value in BDT: {178768 * 0.001} &#2547;</Text>
+          <Text mt={4} >Per Quinn value in BDT: {ethPriceUsd * 0.001 * 109} &#2547;</Text>
           <Text mt={4} >Coin Total Supply: {coinTotalSupply}</Text>
           <Text mt={4} >Currently Quinn Available: {coinAvailable}</Text>
           <Text mt={4} >Coins Sold: {coinsSold}</Text>
           <Center>
-          <Link href='https://sepolia.etherscan.io/token/0x933Cf45BE8Fba8dAf7570CF74E869fb265Dc26a1' target='_blank' >
+          <Link href={`https://sepolia.etherscan.io/token/${tokenContractAddress}`}target='_blank' >
               <Button              
                 height={'5'}
                 rounded={'full'}

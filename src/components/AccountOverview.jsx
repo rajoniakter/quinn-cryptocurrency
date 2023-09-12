@@ -10,13 +10,13 @@ import {
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const AccountOverview = ({userAccount,userAccountTokenBalance}) => {
+const AccountOverview = ({userAccount,userAccountTokenBalance,ethPriceUsd}) => {
   
   const inETH = (n) => {
     return n * 0.001
   }
   const inBDT = (n) =>{
-    return 178768 * n
+    return ethPriceUsd * 109 * n
   }
  
   return (
