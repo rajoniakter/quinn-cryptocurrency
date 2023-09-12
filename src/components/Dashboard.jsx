@@ -11,9 +11,10 @@ import {
 import React from 'react';
 import AccountOverview from './AccountOverview';
 import QuinnOverview from './QuinnOverview';
+import TransactionHistory from './TransactionHistory';
 
 
-const Dashboard = ({userAccount,userAccountTokenBalance,coinName,coinSymbol,coinTotalSupply,coinsSold,tokenPrice,setIsWalletConnected,setUserAccount,coinAvailable}) => {
+const Dashboard = ({userAccount,userAccountTokenBalance,coinName,coinSymbol,coinTotalSupply,coinsSold,tokenPrice,setIsWalletConnected,setUserAccount,coinAvailable,tokenContractAddress,transactionData,ethPriceUsd}) => {
 
 
   return (
@@ -33,15 +34,15 @@ const Dashboard = ({userAccount,userAccountTokenBalance,coinName,coinSymbol,coin
       <TabPanels>
 
         <TabPanel>
-          <AccountOverview userAccount={userAccount} userAccountTokenBalance={userAccountTokenBalance}/>
+          <AccountOverview userAccount={userAccount} userAccountTokenBalance={userAccountTokenBalance} ethPriceUsd={ethPriceUsd}/>
         </TabPanel>
 
         <TabPanel>
-          <QuinnOverview coinName={coinName} coinSymbol={coinSymbol} coinTotalSupply={coinTotalSupply} coinsSold={coinsSold} tokenPrice={tokenPrice} coinAvailable={coinAvailable}/>
+          <QuinnOverview coinName={coinName} coinSymbol={coinSymbol} coinTotalSupply={coinTotalSupply} coinsSold={coinsSold} tokenPrice={tokenPrice} coinAvailable={coinAvailable} tokenContractAddress={tokenContractAddress} ethPriceUsd={ethPriceUsd}/>
         </TabPanel>
 
         <TabPanel>
-          No Transaction yet
+          <TransactionHistory transactionData={transactionData}/>
         </TabPanel>
 
       </TabPanels>
